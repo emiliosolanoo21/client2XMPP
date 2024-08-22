@@ -1,13 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
 import slixmpp
 import asyncio
 import multiprocessing
 from app.xmpp_client import XMPPClient
 from app import app
-
-@app.route('/')
-def index():
-    return render_template('index.html')
 
 class RegisterXMPPClient(slixmpp.ClientXMPP):
     def __init__(self, username, password):
@@ -40,20 +36,22 @@ def register():
 
         message = "Registration successful"
 
-        return render_template('register.html', message=message)
+        return render_template('login.html', message=message)
 
     return render_template('register.html')
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        jid = request.form['jid']
+        # Aquí implementas la lógica de autenticación de usuario
+        username = request.form['username']
         password = request.form['password']
-
-        xmpp = XMPPClient(jid, password)
-        xmpp.connect()
-        xmpp.process(forever=False)
-
-        return redirect(url_for('index'))
+        
+        # Placeholder: Redirecciona al home si las credenciales son correctas
+        return redirect(url_for('home'))
 
     return render_template('login.html')
+
+@app.route('/home')
+def home():
+    return "Página principal después de iniciar sesión."
