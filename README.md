@@ -24,8 +24,8 @@ This project is a simple XMPP client developed using Flask and Slixmpp. It inclu
 1. Clone the repository:
 
 ``` 
-git clone https://github.com/emiliosolanoo21/xmpp-client.git
-cd xmpp-client
+git clone https://github.com/emiliosolanoo21/client2XMPP.git
+cd client2XMPP
 ```
 
 2. Create and activate a virtual environment:
