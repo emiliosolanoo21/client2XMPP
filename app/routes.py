@@ -1,13 +1,16 @@
 from flask import render_template, request, redirect, url_for
 import slixmpp
 import asyncio
-import multiprocessing
+from flask_socketio import emit
 from app.xmpp_client import XMPPClient
-from app import app
+from app import app, socketio
+import re
+import concurrent.futures
 
 class RegisterXMPPClient(slixmpp.ClientXMPP):
     def __init__(self, username, password):
-        super().__init__(username + '@alumchat.lol', password)
+        jid = f'{username}@alumchat.lol'
+        super().__init__(jid, password)
         self.add_event_handler("session_start", self.start)
 
     async def start(self, event):
@@ -26,32 +29,57 @@ def run_xmpp_client(username, password):
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
+        username = request.form['username'].strip()  # Eliminar espacios en blanco
         password = request.form['password']
 
-        # Run the XMPP client in a separate process
-        process = multiprocessing.Process(target=run_xmpp_client, args=(username, password))
-        process.start()
-        process.join()
+        # Run the XMPP client to register the user
+        run_xmpp_client(username, password)
 
         message = "Registration successful"
-
         return render_template('login.html', message=message)
 
     return render_template('register.html')
 
+def is_valid_jid(jid):
+    return bool(re.match(r'^[\w\.-]+@[\w\.-]+$', jid))
+
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # Aquí implementas la lógica de autenticación de usuario
-        username = request.form['username']
+        username = request.form['username'].strip()
         password = request.form['password']
         
-        # Placeholder: Redirecciona al home si las credenciales son correctas
-        return redirect(url_for('home'))
+        jid = f'{username}@alumchat.lol'
+        if not is_valid_jid(jid):
+            return render_template('login.html', message="Invalid JID format")
+
+        async def authenticate_user():
+            client = XMPPClient(jid, password)
+            try:
+                await client.connect()
+                await client.process(forever=False)
+                return True
+            except Exception as e:
+                print(f'Authentication failed: {e}')
+                return False
+
+        # Run the async function in a separate thread
+        loop = asyncio.new_event_loop()
+        executor = concurrent.futures.ThreadPoolExecutor()
+        is_authenticated = loop.run_in_executor(executor, lambda: asyncio.run(authenticate_user()))
+
+        if is_authenticated:
+            return redirect(url_for('home'))
+        else:
+            return render_template('login.html', message="Authentication failed")
 
     return render_template('login.html')
 
 @app.route('/home')
 def home():
-    return "Página principal después de iniciar sesión."
+    return render_template('home.html')
+
+@socketio.on('message')
+def handle_message(data):
+    print('Received message: ' + data)
+    emit('response', {'data': 'Message received'})
