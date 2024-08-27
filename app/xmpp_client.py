@@ -1,3 +1,4 @@
+import ssl
 import slixmpp
 
 class XMPPClient(slixmpp.ClientXMPP):
@@ -5,6 +6,11 @@ class XMPPClient(slixmpp.ClientXMPP):
         super().__init__(jid, password)
         self.add_event_handler("session_start", self.start)
         self.add_event_handler("auth_failed", self.auth_failed)
+
+        # Configurar el cliente para no verificar los certificados del servidor
+        self.ssl_context = ssl.create_default_context()
+        self.ssl_context.check_hostname = False
+        self.ssl_context.verify_mode = ssl.CERT_NONE
 
     async def start(self, event):
         self.send_presence()

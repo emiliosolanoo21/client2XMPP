@@ -32,7 +32,7 @@ def register():
         username = request.form['username'].strip()  # Eliminar espacios en blanco
         password = request.form['password']
 
-        # Run the XMPP client to register the user
+        # Ejecuta el cliente XMPP para registrar al usuario
         run_xmpp_client(username, password)
 
         message = "Registration successful"
@@ -56,17 +56,18 @@ def login():
         async def authenticate_user():
             client = XMPPClient(jid, password)
             try:
-                await client.connect()
-                await client.process(forever=False)
+                client.connect()  # Conexión sin await
+                client.process(forever=False)
                 return True
             except Exception as e:
                 print(f'Authentication failed: {e}')
                 return False
 
-        # Run the async function in a separate thread
+        # Ejecuta la función async en un hilo separado
         loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         executor = concurrent.futures.ThreadPoolExecutor()
-        is_authenticated = loop.run_in_executor(executor, lambda: asyncio.run(authenticate_user()))
+        is_authenticated = loop.run_until_complete(loop.run_in_executor(executor, authenticate_user))
 
         if is_authenticated:
             return redirect(url_for('home'))
