@@ -19,3 +19,16 @@ class XMPPClient(slixmpp.ClientXMPP):
 
     def auth_failed(self, event):
         print("Authentication failed")
+
+class RosterClient(XMPPClient):
+    async def get_roster(self):
+        self.send_presence()
+        await self.get_roster()
+        roster = self.client_roster
+        return {jid: roster[jid] for jid in roster}
+
+async def fetch_roster(jid, password):
+    client = RosterClient(jid, password)
+    client.connect()
+    await client.process(forever=False)
+    return await client.get_roster()
